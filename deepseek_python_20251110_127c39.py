@@ -5,8 +5,8 @@ from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, RPCError
 
 # دریافت تنظیمات از متغیرهای محیطی
-api_id = int(os.environ.get("API_ID", 36570795))
-api_hash = os.environ.get("API_HASH", "f8e95ea36ab7801cc063783aca006005")
+api_id = int(os.environ.get("API_ID", 38528329))
+api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8")
 session_name = os.environ.get("SESSION_NAME", "my_session")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
 message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس DL")
