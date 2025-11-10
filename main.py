@@ -7,7 +7,7 @@ from pyrogram.errors import FloodWait, RPCError
 # دریافت تنظیمات از متغیرهای محیطی
 api_id = int(os.environ.get("API_ID", 38528329))
 api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8")
-session_name = os.environ.get("SESSION_NAME", "my_session")
+session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
 message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس DL")
 
@@ -17,7 +17,13 @@ min_batch_size = 3
 max_batch_size = 5
 pause_time = 4
 
-app = Client(session_name, api_id=api_id, api_hash=api_hash)
+if not session_string:
+    print("❌ SESSION_STRING پیدا نشد! لطفاً متغیر محیطی رو تنظیم کنید.")
+    exit(1)
+
+print("🚀 شروع ربات با Session String...")
+app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
+
 sending = False
 
 @app.on_message(filters.chat("me") & filters.text)
@@ -59,9 +65,11 @@ async def handler(client, message):
                 await asyncio.sleep(e.value)
             except RPCError as e:
                 print("RPCError:", e)
+                sending = False
                 await asyncio.sleep(3)
             except Exception as e:
                 print("Error:", e)
+                sending = False
                 await asyncio.sleep(3)
 
     elif text in ["ایست", "توقف"]:
@@ -74,5 +82,5 @@ async def handler(client, message):
     else:
         await app.send_message("me", "دستور نامعتبر است. از 'شروع' یا 'ایست' استفاده کن.")
 
-print("🤖 Bot is Running on Railway...")
+print("🤖 ربات آماده کار است...")
 app.run()
