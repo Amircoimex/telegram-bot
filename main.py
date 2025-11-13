@@ -11,8 +11,8 @@ session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
 message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس DL")
 
-min_delay = 1
-max_delay = 2.5
+min_delay = 1  # حداقل فاصله ۱ ثانیه
+max_delay = 3  # حداکثر فاصله ۳ ثانیه
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد! لطفاً متغیر محیطی رو تنظیم کنید.")
@@ -22,10 +22,11 @@ print("🚀 شروع ربات با Session String...")
 app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
 sending = False
+message_count = 0
 
 @app.on_message(filters.chat("me") & filters.text)
 async def handler(client, message):
-    global sending
+    global sending, message_count
     text = message.text.strip()
 
     if text == "شروع":
@@ -34,45 +35,41 @@ async def handler(client, message):
             return
 
         sending = True
-        await app.send_message("me", f"شروع شد ✅ هر پیام با فاصله {min_delay}-{max_delay} ثانیه و هر دسته {min_batch_size}-{max_batch_size} پیام ارسال می‌شود.")
+        message_count = 0
+        await app.send_message("me", f"شروع شد ✅ هر پیام با فاصله {min_delay}-{max_delay} ثانیه ارسال می‌شود.")
 
         while sending:
             try:
-                batch_size = random.randint(min_batch_size, max_batch_size)
-                print(f"📦 ارسال دسته جدید با {batch_size} پیام")
+                # ارسال پیام
+                await app.send_message(target_bot, message_text)
+                message_count += 1
+                print(f"📤 پیام #{message_count} به @{target_bot} ارسال شد")
                 
-                for i in range(batch_size):
-                    if not sending:
-                        break
-                    
-                    await app.send_message(target_bot, message_text)
-                    print(f"پیام {i+1}/{batch_size} به @{target_bot} ارسال شد")
-                    
-                    if i < batch_size - 1:
-                        delay = random.uniform(min_delay, max_delay)
-                        print(f"⏸️ توقف {delay:.1f} ثانیه...")
-                        await asyncio.sleep(delay)
-
-                if sending:
-                    print(f"⏸️ توقف {pause_time} ثانیه بین دسته‌ها...")
-                    await asyncio.sleep(pause_time)
+                # فاصله تصادفی بین پیام‌ها
+                delay = random.uniform(min_delay, max_delay)
+                print(f"⏸️ توقف {delay:.1f} ثانیه...")
+                await asyncio.sleep(delay)
 
             except FloodWait as e:
-                print(f"FloodWait: sleep {e.value}s")
+                print(f"⏳ FloodWait: توقف {e.value} ثانیه...")
                 await asyncio.sleep(e.value)
             except RPCError as e:
-                print("RPCError:", e)
+                print(f"❌ RPCError: {e}")
                 sending = False
                 await asyncio.sleep(3)
             except Exception as e:
-                print("Error:", e)
+                print(f"❌ Error: {e}")
                 sending = False
                 await asyncio.sleep(3)
+
+    elif text == "وضعیت":
+        status = "در حال ارسال ✅" if sending else "متوقف ⏸️"
+        await app.send_message("me", f"وضعیت ربات: {status}\nتعداد پیام‌های ارسالی: {message_count}")
 
     elif text in ["ایست", "توقف"]:
         if sending:
             sending = False
-            await app.send_message("me", "⛔ ارسال متوقف شد.")
+            await app.send_message("me", f"⛔ ارسال متوقف شد.\nتعداد کل پیام‌های ارسالی: {message_count}")
         else:
             await app.send_message("me", "هیچ کاری در حال انجام نیست.")
 
