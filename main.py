@@ -11,11 +11,8 @@ session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
 message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس DL")
 
-min_delay = 5
-max_delay = 7
-min_batch_size = 3
-max_batch_size = 5
-pause_time = 4
+min_delay = 1
+max_delay = 2.5
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد! لطفاً متغیر محیطی رو تنظیم کنید.")
