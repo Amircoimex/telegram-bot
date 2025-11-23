@@ -27,33 +27,21 @@ message_count = 0
 active_searches = 0
 max_active_searches = concurrent_searches
 
-# هندلر برای بررسی پیام‌های بات هدف
-@app.on_message(filters.chat(target_bot))
-async def check_search_status(client, message):
-    global active_searches
-    
-    if not sending:
-        return
+# **دیباگ: هندلر برای تمام پیام‌ها**
+@app.on_message()
+async def debug_all_messages(client, message):
+    if sending:
+        print(f"🔍 پیام دریافت شده از: {message.chat.username or message.chat.id}")
+        print(f"🔍 متن پیام: '{message.text}'")
         
-    if message.text:
-        print(f"🔍 پیام کامل از بات: '{message.text}'")
-        
-        # **دیباگ: چک کنیم دقیقاً چه پیامی میاد**
-        message_lower = message.text.lower()
-        print(f"🔍 پیام به حروف کوچک: '{message_lower}'")
-        
-        # **هر پیامی که حاوی "موجود نیست" باشه، پایان جستجوه**
-        if "موجود نیست" in message_lower:
-            if active_searches > 0:
-                active_searches -= 1
-            print(f"✅ جستجو تمام شد! - جستجوهای فعال: {active_searches}")
-            
-            # فاصله کوتاه قبل از ارسال بعدی
-            delay = random.uniform(0.5, 1.5)
-            print(f"⏸️ توقف {delay:.1f} ثانیه...")
-            await asyncio.sleep(delay)
-        else:
-            print(f"🔍 این پیام پایان جستجو نیست: '{message.text}'")
+        # اگر پیام از بات هدف هست
+        if message.chat.username == target_bot.replace("@", ""):
+            print("🎯 این پیام از بات هدف هست!")
+            if "موجود نیست" in (message.text or ""):
+                global active_searches
+                if active_searches > 0:
+                    active_searches -= 1
+                print(f"✅ جستجو تمام شد! - جستجوهای فعال: {active_searches}")
 
 # هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
