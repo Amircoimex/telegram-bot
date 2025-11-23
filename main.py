@@ -12,25 +12,26 @@ message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 
 min_delay = 1
 max_delay = 3
-concurrent_searches = 3  # کاهش به ۳ تا از ۵ تا
+concurrent_searches = 5
 search_timeout = 10
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
     exit(1)
 
-print("🚀 شروع ربات با ۳ درخواست همزمان...")
+print("🚀 شروع ربات با ۵ درخواست همزمان...")
 app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
 sending = False
 message_count = 0
 active_searches = 0
 max_active_searches = concurrent_searches
+cooldown_until = 0  # زمان پایان کول‌داون
 
 # هندلر برای پیام‌های بات هدف
 @app.on_message(filters.user(target_bot))
 async def check_search_status(client, message):
-    global active_searches
+    global active_searches, cooldown_until
     
     if not sending:
         return
@@ -40,7 +41,9 @@ async def check_search_status(client, message):
         
         # اگر خطای محدودیت باشه
         if "نمی‌توانید بیش از 5 درخواست همزمان" in message.text:
-            print("⚠️ محدودیت بات: کاهش درخواست‌ها")
+            print("⏰ محدودیت بات: توقف ۶۰ ثانیه...")
+            cooldown_until = asyncio.get_event_loop().time() + 60  # 60 ثانیه کول‌داون
+            await app.send_message("me", "⏰ محدودیت بات: توقف ۶۰ ثانیه")
             return
         
         # هر پیامی از بات هدف (به جز "جستجوی شماره") یعنی جستجو تموم شده
@@ -61,7 +64,7 @@ async def auto_complete_search():
 # هندلر اصلی
 @app.on_message(filters.chat("me") & filters.text)
 async def handler(client, message):
-    global sending, message_count, active_searches
+    global sending, message_count, active_searches, cooldown_until
     text = message.text.strip()
 
     if text == "شروع":
@@ -72,11 +75,20 @@ async def handler(client, message):
         sending = True
         message_count = 0
         active_searches = 0
+        cooldown_until = 0
         await app.send_message("me", f"شروع شد ✅ ربات با {concurrent_searches} درخواست همزمان کار می‌کند.")
 
         while sending:
             try:
-                # همیشه ۳ درخواست فعال نگه دار
+                # اگر در حالت کول‌داون هستیم
+                current_time = asyncio.get_event_loop().time()
+                if current_time < cooldown_until:
+                    remaining = int(cooldown_until - current_time)
+                    print(f"⏳ منتظر پایان کول‌داون: {remaining} ثانیه باقی مانده...")
+                    await asyncio.sleep(5)
+                    continue
+                
+                # همیشه ۵ درخواست فعال نگه دار
                 while active_searches < max_active_searches and sending:
                     await app.send_message(target_bot, message_text)
                     message_count += 1
@@ -86,13 +98,13 @@ async def handler(client, message):
                     # تایمر برای جستجو
                     asyncio.create_task(auto_complete_search())
                     
-                    delay = random.uniform(2, 4)  # افزایش فاصله
+                    delay = random.uniform(1, 2)
                     await asyncio.sleep(delay)
                 
-                # اگر به ۳ رسیده، صبر کن
+                # اگر به ۵ رسیده، صبر کن
                 if active_searches >= max_active_searches:
                     print(f"⏳ منتظر اتمام جستجو... ({active_searches}/{max_active_searches})")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(2)
 
             except FloodWait as e:
                 print(f"⏳ FloodWait: {e.value} ثانیه")
@@ -103,12 +115,18 @@ async def handler(client, message):
 
     elif text == "وضعیت":
         status = "در حال ارسال ✅" if sending else "متوقف ⏸️"
-        await app.send_message("me", f"وضعیت: {status}\nجستجوهای فعال: {active_searches}/{max_active_searches}\nتعداد پیام‌ها: {message_count}")
+        current_time = asyncio.get_event_loop().time()
+        if current_time < cooldown_until:
+            cooldown_status = f"کول‌داون: {int(cooldown_until - current_time)} ثانیه"
+        else:
+            cooldown_status = "آماده"
+        await app.send_message("me", f"وضعیت: {status}\n{cooldown_status}\nجستجوهای فعال: {active_searches}/{max_active_searches}\nتعداد پیام‌ها: {message_count}")
 
     elif text in ["ایست", "توقف"]:
         if sending:
             sending = False
             active_searches = 0
+            cooldown_until = 0
             await app.send_message("me", f"⛔ متوقف شد\nتعداد پیام‌ها: {message_count}")
         else:
             await app.send_message("me", "در حال حاضر فعال نیست")
