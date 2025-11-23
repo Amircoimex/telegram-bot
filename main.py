@@ -14,7 +14,7 @@ message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 min_delay = 1
 max_delay = 3
 concurrent_searches = 5
-search_timeout = 15  # تایم‌اوت اضطراری
+search_timeout = 8
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
@@ -39,7 +39,7 @@ async def check_search_status(client, message):
     if message.text:
         print(f"🔍 پیام از بات: '{message.text}'")
         
-        # **فقط وقتی جستجو تموم شده** active_searches رو کم کن
+        # **اگر پیام پایان جستجو هست**
         if "شماره ای موجود نیست" in message.text or "شماره سالمی یافت نشد" in message.text:
             if active_searches > 0:
                 active_searches -= 1
@@ -76,7 +76,7 @@ async def handler(client, message):
                 active_searches += 1
                 print(f"📤 پیام #{message_count} ارسال شد - جستجوهای فعال: {active_searches}/{max_active_searches}")
                 
-                delay = random.uniform(2, 4)  # فاصله بیشتر
+                delay = random.uniform(1, 2)
                 await asyncio.sleep(delay)
             except Exception as e:
                 print(f"❌ خطا: {e}")
@@ -90,11 +90,11 @@ async def handler(client, message):
                     active_searches += 1
                     print(f"📤 پیام #{message_count} ارسال شد - جستجوهای فعال: {active_searches}/{max_active_searches}")
                     
-                    delay = random.uniform(2, 4)  # فاصله بیشتر
+                    delay = random.uniform(1, 2)
                     await asyncio.sleep(delay)
                 else:
                     print(f"⏳ منتظر اتمام جستجو... ({active_searches}/{max_active_searches})")
-                    await asyncio.sleep(3)  # چک هر ۳ ثانیه
+                    await asyncio.sleep(2)
 
             except FloodWait as e:
                 print(f"⏳ FloodWait: {e.value} ثانیه")
