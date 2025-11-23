@@ -14,7 +14,6 @@ message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 min_delay = 1
 max_delay = 3
 concurrent_searches = 5
-search_timeout = 8
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
@@ -37,18 +36,24 @@ async def check_search_status(client, message):
         return
         
     if message.text:
-        print(f"🔍 پیام از بات: '{message.text}'")
+        print(f"🔍 پیام کامل از بات: '{message.text}'")
         
-        # **اگر پیام پایان جستجو هست**
-        if "شماره ای موجود نیست" in message.text or "شماره سالمی یافت نشد" in message.text:
+        # **دیباگ: چک کنیم دقیقاً چه پیامی میاد**
+        message_lower = message.text.lower()
+        print(f"🔍 پیام به حروف کوچک: '{message_lower}'")
+        
+        # **هر پیامی که حاوی "موجود نیست" باشه، پایان جستجوه**
+        if "موجود نیست" in message_lower:
             if active_searches > 0:
                 active_searches -= 1
-            print(f"✅ جستجو تمام شد - جستجوهای فعال: {active_searches}")
+            print(f"✅ جستجو تمام شد! - جستجوهای فعال: {active_searches}")
             
             # فاصله کوتاه قبل از ارسال بعدی
             delay = random.uniform(0.5, 1.5)
             print(f"⏸️ توقف {delay:.1f} ثانیه...")
             await asyncio.sleep(delay)
+        else:
+            print(f"🔍 این پیام پایان جستجو نیست: '{message.text}'")
 
 # هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
