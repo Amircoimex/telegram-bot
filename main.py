@@ -1,49 +1,67 @@
 import asyncio
+import random
 import os
 from pyrogram import Client, filters
+from pyrogram.errors import FloodWait, RPCError
 
 api_id = int(os.environ.get("API_ID", 38528329))
-api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8")
+api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8"))
 session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
+message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 
-if not session_string:
-    print("❌ SESSION_STRING پیدا نشد!")
-    exit(1)
-
-print("🔍 تست دریافت پیام از بات هدف...")
+print("🚀 شروع ربات...")
 print(f"🎯 بات هدف: @{target_bot}")
 app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
-# هندلر برای تمام پیام‌ها
-@app.on_message()
-async def handle_all_messages(client, message):
-    # فقط پیام‌های مربوط به بات هدف رو نمایش بده
-    if message.chat.username == target_bot.replace("@", ""):
-        print(f"🎯 پیام از بات هدف:")
-        print(f"   متن: '{message.text}'")
-        print(f"   چت آیدی: {message.chat.id}")
-        print(f"   یوزرنیم: @{message.chat.username}")
-        print("---")
-    elif message.chat.id == 7626529274:  # چت شما
-        print(f"👤 پیام از شما: '{message.text}'")
+sending = False
+message_count = 0
 
+# هندلر برای تمام پیام‌ها از بات هدف
+@app.on_message(filters.user(target_bot))
+async def handle_bot_messages(client, message):
+    print(f"🎯 پیام از بات هدف: '{message.text}'")
+    
+    global message_count
+    if "موجود نیست" in (message.text or ""):
+        print("✅ جستجو تمام شد!")
+        # تاخیر قبل از ارسال بعدی
+        await asyncio.sleep(2)
+
+# هندلر اصلی
 @app.on_message(filters.chat("me") & filters.text)
-async def handle_my_messages(client, message):
-    if message.text == "شروع":
-        await message.reply("✅ تست شروع شد!")
-        
-        # تست ارسال به بات هدف
-        try:
-            sent_message = await app.send_message(target_bot, "🇹🇳 تونس JONS")
-            await message.reply(f"📤 پیام به @{target_bot} ارسال شد")
-            print(f"✅ پیام به @{target_bot} ارسال شد")
-        except Exception as e:
-            await message.reply(f"❌ خطا در ارسال: {e}")
-            print(f"❌ خطا در ارسال: {e}")
+async def handler(client, message):
+    global sending, message_count
+    text = message.text.strip()
 
-    elif message.text == "وضعیت":
-        await message.reply("🤖 در حال تست بات هدف")
+    if text == "شروع":
+        if sending:
+            await message.reply("قبلاً شروع شده ✅")
+            return
 
-print("🚀 ربات تستی آماده...")
+        sending = True
+        message_count = 0
+        await message.reply("شروع شد ✅")
+
+        while sending:
+            try:
+                # ارسال پیام
+                await app.send_message(target_bot, message_text)
+                message_count += 1
+                print(f"📤 پیام #{message_count} ارسال شد")
+                await message.reply(f"📤 پیام #{message_count} ارسال شد")
+                
+                # منتظر پاسخ بات هدف
+                print("⏳ منتظر پاسخ بات هدف...")
+                await asyncio.sleep(10)  # ۱۰ ثانیه منتظر پاسخ بمون
+                
+            except Exception as e:
+                print(f"❌ خطا: {e}")
+                await asyncio.sleep(3)
+
+    elif text == "توقف":
+        sending = False
+        await message.reply(f"⛔ متوقف شد - تعداد پیام‌ها: {message_count}")
+
+print("🤖 ربات آماده...")
 app.run()
