@@ -12,14 +12,14 @@ message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 
 min_delay = 1
 max_delay = 3
-concurrent_searches = 5
-search_timeout = 10  # 10 ثانیه برای هر جستجو
+concurrent_searches = 3  # کاهش به ۳ تا از ۵ تا
+search_timeout = 10
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
     exit(1)
 
-print("🚀 شروع ربات با ۵ درخواست همزمان...")
+print("🚀 شروع ربات با ۳ درخواست همزمان...")
 app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
 sending = False
@@ -38,7 +38,12 @@ async def check_search_status(client, message):
     if message.text:
         print(f"🎯 پیام از بات هدف: '{message.text}'")
         
-        # **هر پیامی از بات هدف (به جز "جستجوی شماره") یعنی جستجو تموم شده**
+        # اگر خطای محدودیت باشه
+        if "نمی‌توانید بیش از 5 درخواست همزمان" in message.text:
+            print("⚠️ محدودیت بات: کاهش درخواست‌ها")
+            return
+        
+        # هر پیامی از بات هدف (به جز "جستجوی شماره") یعنی جستجو تموم شده
         if "جستجوی شماره" not in message.text:
             if active_searches > 0:
                 active_searches -= 1
@@ -71,7 +76,7 @@ async def handler(client, message):
 
         while sending:
             try:
-                # همیشه ۵ درخواست فعال نگه دار
+                # همیشه ۳ درخواست فعال نگه دار
                 while active_searches < max_active_searches and sending:
                     await app.send_message(target_bot, message_text)
                     message_count += 1
@@ -81,13 +86,13 @@ async def handler(client, message):
                     # تایمر برای جستجو
                     asyncio.create_task(auto_complete_search())
                     
-                    delay = random.uniform(1, 2)
+                    delay = random.uniform(2, 4)  # افزایش فاصله
                     await asyncio.sleep(delay)
                 
-                # اگر به ۵ رسیده، صبر کن
+                # اگر به ۳ رسیده، صبر کن
                 if active_searches >= max_active_searches:
                     print(f"⏳ منتظر اتمام جستجو... ({active_searches}/{max_active_searches})")
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(3)
 
             except FloodWait as e:
                 print(f"⏳ FloodWait: {e.value} ثانیه")
