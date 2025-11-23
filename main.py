@@ -36,6 +36,27 @@ SEARCH_END_KEYWORDS = [
     "یافت نشد"
 ]
 
+# هندلر برای بررسی پیام‌های بات هدف
+@app.on_message(filters.chat(target_bot))
+async def check_search_status(client, message):
+    global search_in_progress
+    
+    if not sending:
+        return
+        
+    message_text_lower = message.text.lower() if message.text else ""
+    
+    # اگر پیام حاوی کلمات کلیدی پایان جستجو باشد
+    if any(keyword in message_text_lower for keyword in [k.lower() for k in SEARCH_END_KEYWORDS]):
+        print("✅ جستجو تمام شد - آماده ارسال پیام بعدی")
+        search_in_progress = False
+        
+        # فاصله تصادفی قبل از ارسال پیام جدید
+        delay = random.uniform(min_delay, max_delay)
+        print(f"⏸️ توقف {delay:.1f} ثانیه قبل از ارسال بعدی...")
+        await asyncio.sleep(delay)
+
+# هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
 async def handler(client, message):
     global sending, message_count, search_in_progress
@@ -75,26 +96,6 @@ async def handler(client, message):
                 print(f"❌ Error: {e}")
                 sending = False
                 await asyncio.sleep(3)
-
-    # بررسی پیام‌های بات هدف برای تشخیص اتمام جستجو
-    @app.on_message(filters.chat(target_bot))
-    async def check_search_status(client, message):
-        global search_in_progress
-        
-        if not sending:
-            return
-            
-        message_text_lower = message.text.lower() if message.text else ""
-        
-        # اگر پیام حاوی کلمات کلیدی پایان جستجو باشد
-        if any(keyword in message_text_lower for keyword in [k.lower() for k in SEARCH_END_KEYWORDS]):
-            print("✅ جستجو تمام شد - آماده ارسال پیام بعدی")
-            search_in_progress = False
-            
-            # فاصله تصادفی قبل از ارسال پیام جدید
-            delay = random.uniform(min_delay, max_delay)
-            print(f"⏸️ توقف {delay:.1f} ثانیه قبل از ارسال بعدی...")
-            await asyncio.sleep(delay)
 
     elif text == "وضعیت":
         status = "در حال ارسال ✅" if sending else "متوقف ⏸️"
