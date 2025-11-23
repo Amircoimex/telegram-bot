@@ -9,11 +9,12 @@ api_id = int(os.environ.get("API_ID", 38528329))
 api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8")
 session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
-message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس DL")
+message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")  # تغییر به پیام جدید
 
 min_delay = 1
 max_delay = 3
 concurrent_searches = 5
+search_timeout = 25  # 25 ثانیه تایم‌اوت برای هر جستجو
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
@@ -36,22 +37,21 @@ async def check_search_status(client, message):
         return
         
     if message.text:
-        print(f"🔍 پیام کامل از بات: '{message.text}'")
+        print(f"🔍 پیام از بات: '{message.text}'")
         
-        # تشخیص خودکار پایان جستجو - اگر پیام جدیدی نیست و فقط جستجو شروع شده
-        if "جستجوی شماره" in message.text and not "موجود نیست" in message.text:
-            print("⏳ جستجو در حال انجام...")
-        else:
-            # اگر پیام متفاوته، احتمالاً جستجو تموم شده
-            if active_searches > 0:
-                active_searches -= 1
-            print(f"✅ جستجو تمام شد - پیام: '{message.text}'")
-            print(f"📊 جستجوهای فعال: {active_searches}")
-            
-            # فاصله کوتاه
-            delay = random.uniform(0.5, 1.5)
-            print(f"⏸️ توقف {delay:.1f} ثانیه...")
-            await asyncio.sleep(delay)
+        # اگر پیام "جستجوی شماره" هست، تایمر تنظیم کن
+        if "جستجوی شماره" in message.text:
+            print("⏳ جستجو شروع شد - تایم‌اوت ۲۵ ثانیه")
+            asyncio.create_task(auto_complete_search())
+
+async def auto_complete_search():
+    """اتمام خودکار جستجو بعد از 25 ثانیه"""
+    await asyncio.sleep(search_timeout)
+    
+    global active_searches
+    if active_searches > 0:
+        active_searches -= 1
+        print(f"✅ جستجو به صورت خودکار تمام شد - جستجوهای فعال: {active_searches}")
 
 # هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
@@ -79,7 +79,7 @@ async def handler(client, message):
                 active_searches += 1
                 print(f"📤 پیام #{message_count} ارسال شد - جستجوهای فعال: {active_searches}/{max_active_searches}")
                 
-                delay = random.uniform(0.3, 1.0)
+                delay = random.uniform(0.5, 1.5)
                 await asyncio.sleep(delay)
             except Exception as e:
                 print(f"❌ خطا: {e}")
@@ -93,11 +93,11 @@ async def handler(client, message):
                     active_searches += 1
                     print(f"📤 پیام #{message_count} ارسال شد - جستجوهای فعال: {active_searches}/{max_active_searches}")
                     
-                    delay = random.uniform(0.3, 1.0)
+                    delay = random.uniform(0.5, 1.5)
                     await asyncio.sleep(delay)
                 else:
                     print(f"⏳ منتظر اتمام جستجو... ({active_searches}/{max_active_searches})")
-                    await asyncio.sleep(3)  # افزایش زمان انتظار
+                    await asyncio.sleep(2)
 
             except FloodWait as e:
                 print(f"⏳ FloodWait: {e.value} ثانیه")
