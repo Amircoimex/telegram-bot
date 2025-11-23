@@ -11,105 +11,48 @@ session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
 message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 
-min_delay = 1
-max_delay = 3
-concurrent_searches = 5
-
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
     exit(1)
 
-print("🚀 شروع ربات با ۵ درخواست همزمان...")
+print("🚀 ربات راه اندازی شد...")
+print("📱 منتظر دستور 'شروع' از Saved Messages...")
 app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
 sending = False
-message_count = 0
-active_searches = 0
-max_active_searches = concurrent_searches
 
-# **دیباگ: هندلر برای تمام پیام‌ها**
-@app.on_message()
-async def debug_all_messages(client, message):
-    if sending:
-        print(f"🔍 پیام دریافت شده از: {message.chat.username or message.chat.id}")
-        print(f"🔍 متن پیام: '{message.text}'")
-        
-        # اگر پیام از بات هدف هست
-        if message.chat.username == target_bot.replace("@", ""):
-            print("🎯 این پیام از بات هدف هست!")
-            if "موجود نیست" in (message.text or ""):
-                global active_searches
-                if active_searches > 0:
-                    active_searches -= 1
-                print(f"✅ جستجو تمام شد! - جستجوهای فعال: {active_searches}")
-
-# هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
 async def handler(client, message):
-    global sending, message_count, active_searches
+    global sending
     text = message.text.strip()
 
     if text == "شروع":
         if sending:
-            await app.send_message("me", "قبلاً شروع شده ✅")
+            await message.reply("❌ قبلاً شروع شده!")
             return
 
         sending = True
-        message_count = 0
-        active_searches = 0
-        await app.send_message("me", f"شروع شد ✅ ربات با {concurrent_searches} درخواست همزمان کار می‌کند.")
-
-        # ارسال اولیه
-        for i in range(concurrent_searches):
-            if not sending:
-                break
+        await message.reply("✅ ربات شروع به کار کرد!")
+        
+        count = 0
+        while sending and count < 5:  # فقط ۵ پیام تستی
             try:
                 await app.send_message(target_bot, message_text)
-                message_count += 1
-                active_searches += 1
-                print(f"📤 پیام #{message_count} ارسال شد - جستجوهای فعال: {active_searches}/{max_active_searches}")
-                
-                delay = random.uniform(1, 2)
-                await asyncio.sleep(delay)
+                count += 1
+                await message.reply(f"📤 پیام #{count} ارسال شد")
+                await asyncio.sleep(2)
             except Exception as e:
-                print(f"❌ خطا: {e}")
+                await message.reply(f"❌ خطا: {e}")
+                break
 
-        # ادامه کار
-        while sending:
-            try:
-                if active_searches < max_active_searches:
-                    await app.send_message(target_bot, message_text)
-                    message_count += 1
-                    active_searches += 1
-                    print(f"📤 پیام #{message_count} ارسال شد - جستجوهای فعال: {active_searches}/{max_active_searches}")
-                    
-                    delay = random.uniform(1, 2)
-                    await asyncio.sleep(delay)
-                else:
-                    print(f"⏳ منتظر اتمام جستجو... ({active_searches}/{max_active_searches})")
-                    await asyncio.sleep(2)
+        sending = False
+        await message.reply("🏁 تست کامل شد!")
 
-            except FloodWait as e:
-                print(f"⏳ FloodWait: {e.value} ثانیه")
-                await asyncio.sleep(e.value)
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                await asyncio.sleep(3)
-
-    elif text == "وضعیت":
-        status = "در حال ارسال ✅" if sending else "متوقف ⏸️"
-        await app.send_message("me", f"وضعیت: {status}\nجستجوهای فعال: {active_searches}/{max_active_searches}\nتعداد پیام‌ها: {message_count}")
-
-    elif text in ["ایست", "توقف"]:
-        if sending:
-            sending = False
-            active_searches = 0
-            await app.send_message("me", f"⛔ متوقف شد\nتعداد پیام‌ها: {message_count}")
-        else:
-            await app.send_message("me", "در حال حاضر فعال نیست")
+    elif text == "توقف":
+        sending = False
+        await message.reply("⏹️ متوقف شد")
 
     else:
-        await app.send_message("me", "دستور نامعتبر")
+        await message.reply("❓ دستور نامعتبر. از 'شروع' استفاده کن")
 
-print("🤖 ربات آماده کار است...")
 app.run()
