@@ -33,7 +33,9 @@ SEARCH_END_KEYWORDS = [
     "پایان جستجو",
     "تمام شد",
     "نتیجه ای یافت نشد",
-    "یافت نشد"
+    "یافت نشد",
+    "⚠️ شماره ای موجود نیست",
+    "لطفا دوباره تلاش کنید"
 ]
 
 # هندلر برای بررسی پیام‌های بات هدف
@@ -44,17 +46,19 @@ async def check_search_status(client, message):
     if not sending:
         return
         
-    message_text_lower = message.text.lower() if message.text else ""
-    
-    # اگر پیام حاوی کلمات کلیدی پایان جستجو باشد
-    if any(keyword in message_text_lower for keyword in [k.lower() for k in SEARCH_END_KEYWORDS]):
-        print("✅ جستجو تمام شد - آماده ارسال پیام بعدی")
-        search_in_progress = False
+    if message.text:
+        message_text_lower = message.text.lower()
+        print(f"📨 پیام از بات: {message.text}")
         
-        # فاصله تصادفی قبل از ارسال پیام جدید
-        delay = random.uniform(min_delay, max_delay)
-        print(f"⏸️ توقف {delay:.1f} ثانیه قبل از ارسال بعدی...")
-        await asyncio.sleep(delay)
+        # اگر پیام حاوی کلمات کلیدی پایان جستجو باشد
+        if any(keyword in message_text_lower for keyword in [k.lower() for k in SEARCH_END_KEYWORDS]):
+            print("✅ جستجو تمام شد - آماده ارسال پیام بعدی")
+            search_in_progress = False
+            
+            # فاصله تصادفی قبل از ارسال پیام جدید
+            delay = random.uniform(min_delay, max_delay)
+            print(f"⏸️ توقف {delay:.1f} ثانیه قبل از ارسال بعدی...")
+            await asyncio.sleep(delay)
 
 # هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
@@ -70,7 +74,7 @@ async def handler(client, message):
         sending = True
         message_count = 0
         search_in_progress = False
-        await app.send_message("me", f"شروع شد ✅ ربات منتظر اتمام هر جستجو می‌ماند.")
+        await app.send_message("me", "شروع شد ✅ ربات منتظر اتمام هر جستجو می‌ماند.")
 
         while sending:
             try:
