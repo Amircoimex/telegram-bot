@@ -9,7 +9,7 @@ api_id = int(os.environ.get("API_ID", 38528329))
 api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8")
 session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
-message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")  # تغییر به پیام جدید
+message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
 
 min_delay = 1
 max_delay = 3
@@ -43,6 +43,17 @@ async def check_search_status(client, message):
         if "جستجوی شماره" in message.text:
             print("⏳ جستجو شروع شد - تایم‌اوت ۲۵ ثانیه")
             asyncio.create_task(auto_complete_search())
+        
+        # اگر پیام پایان جستجو هست (هر دو نوع)
+        elif "شماره ای موجود نیست" in message.text or "شماره سالمی یافت نشد" in message.text:
+            if active_searches > 0:
+                active_searches -= 1
+            print(f"✅ جستجو تمام شد - جستجوهای فعال: {active_searches}")
+            
+            # فاصله کوتاه قبل از ارسال بعدی
+            delay = random.uniform(0.5, 1.5)
+            print(f"⏸️ توقف {delay:.1f} ثانیه...")
+            await asyncio.sleep(delay)
 
 async def auto_complete_search():
     """اتمام خودکار جستجو بعد از 25 ثانیه"""
@@ -51,7 +62,7 @@ async def auto_complete_search():
     global active_searches
     if active_searches > 0:
         active_searches -= 1
-        print(f"✅ جستجو به صورت خودکار تمام شد - جستجوهای فعال: {active_searches}")
+        print(f"⏰ جستجو به صورت خودکار تمام شد - جستجوهای فعال: {active_searches}")
 
 # هندلر اصلی برای دستورات کاربر
 @app.on_message(filters.chat("me") & filters.text)
