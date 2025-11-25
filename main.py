@@ -16,7 +16,6 @@ concurrent_searches = 5
 search_timeout = 10
 cooldown_duration = 60
 request_delay = 2
-adaptive_mode = True  # حالت تطبیقی
 
 if not session_string:
     print("❌ SESSION_STRING پیدا نشد!")
@@ -34,6 +33,7 @@ successful_searches = 0
 failed_searches = 0
 start_time = 0
 adaptive_delay = request_delay
+adaptive_mode = True  # حالت تطبیقی
 
 # هندلر برای پیام‌های بات هدف
 @app.on_message(filters.user(target_bot))
@@ -103,7 +103,7 @@ def calculate_stats():
 @app.on_message(filters.chat("me") & filters.text)
 async def handler(client, message):
     global sending, message_count, active_searches, cooldown_until
-    global successful_searches, failed_searches, start_time, adaptive_delay
+    global successful_searches, failed_searches, start_time, adaptive_delay, adaptive_mode
     
     text = message.text.strip()
 
@@ -192,7 +192,6 @@ async def handler(client, message):
         await app.send_message("me", stats)
 
     elif text == "تطبیق":
-        global adaptive_mode
         adaptive_mode = not adaptive_mode
         status = "فعال" if adaptive_mode else "غیرفعال"
         await app.send_message("me", f"🔧 حالت تطبیقی {status} شد")
