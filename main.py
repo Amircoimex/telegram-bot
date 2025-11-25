@@ -97,7 +97,7 @@ async def handler(client, message):
                     # تایمر برای جستجو
                     asyncio.create_task(auto_complete_search())
                     
-                    # **فاصله ۲ ثانیه بین هر درخواست**
+                    # فاصله ۲ ثانیه بین هر درخواست
                     if active_searches < max_active_searches:  # بعد از آخرین درخواست صبر نکن
                         print("⏸️ توقف ۲ ثانیه بین درخواست‌ها...")
                         await asyncio.sleep(2)
