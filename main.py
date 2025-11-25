@@ -1,226 +1,86 @@
 import asyncio
 import random
 import os
-import time
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, RPCError
 
+# دریافت تنظیمات از متغیرهای محیطی
 api_id = int(os.environ.get("API_ID", 38528329))
 api_hash = os.environ.get("API_HASH", "61564de233d29aff8737fce91232a4e8")
 session_string = os.environ.get("SESSION_STRING", "")
 target_bot = os.environ.get("TARGET_BOT", "ten_number_bot")
-message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس JONS")
+message_text = os.environ.get("MESSAGE_TEXT", "🇹🇳 تونس DL")
 
-# تنظیمات پیشرفته
-concurrent_searches = 5
-search_timeout = 10
-cooldown_duration = 60
-request_delay = 2
+min_delay = 2
+max_delay = 3
+min_batch_size = 3
+max_batch_size = 5
+pause_time = 4
 
 if not session_string:
-    print("❌ SESSION_STRING پیدا نشد!")
+    print("❌ SESSION_STRING پیدا نشد! لطفاً متغیر محیطی رو تنظیم کنید.")
     exit(1)
 
-print("🧠 ربات هوشمند راه‌اندازی شد...")
+print("🚀 شروع ربات با Session String...")
 app = Client("my_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
-# متغیرهای حالت
 sending = False
-message_count = 0
-active_searches = 0
-cooldown_until = 0
-successful_searches = 0
-failed_searches = 0
-start_time = 0
-adaptive_delay = request_delay
-adaptive_mode = True
-in_cooldown = False  # اضافه کردن فلگ کول‌داون
 
-# هندلر برای پیام‌های بات هدف
-@app.on_message(filters.user(target_bot))
-async def check_search_status(client, message):
-    global active_searches, cooldown_until, successful_searches, failed_searches, adaptive_delay, in_cooldown
-    
-    if not sending:
-        return
-        
-    if message.text:
-        print(f"🎯 [{time.strftime('%H:%M:%S')}] از بات: '{message.text}'")
-        
-        # تشخیص خطای محدودیت
-        if "نمی‌توانید بیش از 5 درخواست همزمان" in message.text:
-            print("⏰ محدودیت تشخیص داده شد - توقف ۶۰ ثانیه")
-            cooldown_until = time.time() + cooldown_duration
-            in_cooldown = True  # فعال کردن فلگ کول‌داون
-            active_searches = 0  # صفر کردن تمام جستجوهای فعال
-            if adaptive_mode:
-                adaptive_delay = min(adaptive_delay + 0.5, 5)
-            return
-        
-        # تشخیص موفقیت‌آمیز بودن جستجو
-        if "جستجوی شماره" not in message.text:
-            if active_searches > 0:
-                active_searches -= 1
-            
-            if "موجود نیست" in message.text:
-                failed_searches += 1
-                print("❌ جستجو ناموفق")
-            else:
-                successful_searches += 1
-                print("✅ جستجو موفق")
-                
-            if adaptive_mode and successful_searches % 3 == 0:
-                adaptive_delay = max(adaptive_delay - 0.2, 1)
-            
-            print(f"📊 جستجوهای فعال: {active_searches}")
-
-async def auto_complete_search():
-    """اتمام خودکار جستجو"""
-    await asyncio.sleep(search_timeout)
-    
-    global active_searches, failed_searches
-    if active_searches > 0 and not in_cooldown:  # فقط اگر در کول‌داون نیستیم
-        active_searches -= 1
-        failed_searches += 1
-        print(f"⏰ جستجو خودکار تمام شد")
-
-def calculate_stats():
-    """محاسبه آمار عملکرد"""
-    if message_count == 0:
-        return "آمار موجود نیست"
-    
-    elapsed = time.time() - start_time
-    speed = message_count / (elapsed / 60) if elapsed > 0 else 0
-    success_rate = (successful_searches / message_count) * 100 if message_count > 0 else 0
-    
-    return f"""
-📊 آمار عملکرد:
-├─ سرعت: {speed:.1f} پیام/دقیقه
-├─ موفق: {successful_searches} جستجو
-├─ ناموفق: {failed_searches} جستجو  
-└─ موفقیت: {success_rate:.1f}%
-"""
-
-# هندلر اصلی
 @app.on_message(filters.chat("me") & filters.text)
 async def handler(client, message):
-    global sending, message_count, active_searches, cooldown_until
-    global successful_searches, failed_searches, start_time, adaptive_delay, adaptive_mode, in_cooldown
-    
+    global sending
     text = message.text.strip()
 
     if text == "شروع":
         if sending:
-            await app.send_message("me", "⏳ قبلاً شروع شده!")
+            await app.send_message("me", "قبلاً شروع شده ✅")
             return
 
         sending = True
-        message_count = 0
-        active_searches = 0
-        cooldown_until = 0
-        successful_searches = 0
-        failed_searches = 0
-        start_time = time.time()
-        adaptive_delay = request_delay
-        in_cooldown = False
-        
-        status_msg = await app.send_message("me", 
-            f"🚀 ربات هوشمند شروع به کار کرد!\n"
-            f"🔧 حالت تطبیقی: {'فعال' if adaptive_mode else 'غیرفعال'}\n"
-            f"⏰ تاخیر فعلی: {adaptive_delay} ثانیه"
-        )
+        await app.send_message("me", f"شروع شد ✅ هر پیام با فاصله {min_delay}-{max_delay} ثانیه و هر دسته {min_batch_size}-{max_batch_size} پیام ارسال می‌شود.")
 
         while sending:
             try:
-                # بررسی کول‌داون
-                current_time = time.time()
-                if in_cooldown:
-                    if current_time >= cooldown_until:
-                        print("✅ کول‌داون تمام شد - ادامه کار")
-                        in_cooldown = False
-                        active_searches = 0  # ریست جستجوهای فعال
-                    else:
-                        remaining = int(cooldown_until - current_time)
-                        if remaining % 10 == 0:
-                            print(f"⏳ کول‌داون: {remaining} ثانیه باقی مانده")
-                        await asyncio.sleep(5)
-                        continue
+                batch_size = random.randint(min_batch_size, max_batch_size)
+                print(f"📦 ارسال دسته جدید با {batch_size} پیام")
                 
-                # ارسال درخواست‌های جدید
-                while active_searches < concurrent_searches and sending and not in_cooldown:
+                for i in range(batch_size):
+                    if not sending:
+                        break
+                    
                     await app.send_message(target_bot, message_text)
-                    message_count += 1
-                    active_searches += 1
+                    print(f"پیام {i+1}/{batch_size} به @{target_bot} ارسال شد")
                     
-                    print(f"📤 [{time.strftime('%H:%M:%S')}] پیام #{message_count} - فعال: {active_searches}/{concurrent_searches}")
-                    
-                    # تایمر جستجو
-                    asyncio.create_task(auto_complete_search())
-                    
-                    # تاخیر تطبیقی بین درخواست‌ها
-                    if active_searches < concurrent_searches:
-                        await asyncio.sleep(adaptive_delay)
-                
-                await asyncio.sleep(2)
+                    if i < batch_size - 1:
+                        delay = random.uniform(min_delay, max_delay)
+                        print(f"⏸️ توقف {delay:.1f} ثانیه...")
+                        await asyncio.sleep(delay)
+
+                if sending:
+                    print(f"⏸️ توقف {pause_time} ثانیه بین دسته‌ها...")
+                    await asyncio.sleep(pause_time)
 
             except FloodWait as e:
-                print(f"⏳ FloodWait: {e.value} ثانیه")
+                print(f"FloodWait: sleep {e.value}s")
                 await asyncio.sleep(e.value)
-            except Exception as e:
-                print(f"❌ خطا: {e}")
+            except RPCError as e:
+                print("RPCError:", e)
+                sending = False
                 await asyncio.sleep(3)
-
-    elif text == "وضعیت":
-        stats = calculate_stats()
-        status = "🟢 در حال اجرا" if sending else "🔴 متوقف"
-        cooldown_status = f"⏰ کول‌داون: {int(cooldown_until - time.time())} ثانیه" if in_cooldown else "✅ آماده"
-        
-        await app.send_message("me",
-            f"{status}\n"
-            f"{cooldown_status}\n"
-            f"📤 پیام‌ها: {message_count}\n"
-            f"🔍 جستجوهای فعال: {active_searches}/{concurrent_searches}\n"
-            f"✅ موفق: {successful_searches}\n"
-            f"❌ ناموفق: {failed_searches}\n"
-            f"⏰ تاخیر: {adaptive_delay:.1f} ثانیه\n"
-            f"{stats}"
-        )
-
-    elif text == "آمار":
-        stats = calculate_stats()
-        await app.send_message("me", stats)
-
-    elif text == "تطبیق":
-        adaptive_mode = not adaptive_mode
-        status = "فعال" if adaptive_mode else "غیرفعال"
-        await app.send_message("me", f"🔧 حالت تطبیقی {status} شد")
+            except Exception as e:
+                print("Error:", e)
+                sending = False
+                await asyncio.sleep(3)
 
     elif text in ["ایست", "توقف"]:
         if sending:
             sending = False
-            in_cooldown = False
-            stats = calculate_stats()
-            await app.send_message("me",
-                f"⛔ ربات متوقف شد\n"
-                f"📊 عملکرد کلی:\n"
-                f"├─ کل پیام‌ها: {message_count}\n"
-                f"├─ موفق: {successful_searches}\n"
-                f"├─ ناموفق: {failed_searches}\n"
-                f"└─ زمان اجرا: {int((time.time() - start_time) / 60)} دقیقه\n"
-                f"{stats}"
-            )
+            await app.send_message("me", "⛔ ارسال متوقف شد.")
         else:
-            await app.send_message("me", "🔴 ربات از قبل متوقف است")
+            await app.send_message("me", "هیچ کاری در حال انجام نیست.")
 
     else:
-        await app.send_message("me", 
-            "🤖 دستورات ربات:\n"
-            "├─ شروع - اجرای ربات\n"
-            "├─ توقف - توقف ربات\n"
-            "├─ وضعیت - نمایش وضعیت\n"
-            "├─ آمار - آمار عملکرد\n"
-            "└─ تطبیق - تغییر حالت تطبیقی"
-        )
+        await app.send_message("me", "دستور نامعتبر است. از 'شروع' یا 'ایست' استفاده کن.")
 
-print("🤖 ربات هوشمند آماده کار است...")
+print("🤖 ربات آماده کار است...")
 app.run()
