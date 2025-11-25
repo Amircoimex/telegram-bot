@@ -43,7 +43,6 @@ async def check_search_status(client, message):
         if "نمی‌توانید بیش از 5 درخواست همزمان" in message.text:
             print("⏰ محدودیت بات: توقف ۶۰ ثانیه...")
             cooldown_until = asyncio.get_event_loop().time() + 60  # 60 ثانیه کول‌داون
-            await app.send_message("me", "⏰ محدودیت بات: توقف ۶۰ ثانیه")
             return
         
         # هر پیامی از بات هدف (به جز "جستجوی شماره") یعنی جستجو تموم شده
@@ -98,8 +97,10 @@ async def handler(client, message):
                     # تایمر برای جستجو
                     asyncio.create_task(auto_complete_search())
                     
-                    delay = random.uniform(1, 2)
-                    await asyncio.sleep(delay)
+                    # **فاصله ۲ ثانیه بین هر درخواست**
+                    if active_searches < max_active_searches:  # بعد از آخرین درخواست صبر نکن
+                        print("⏸️ توقف ۲ ثانیه بین درخواست‌ها...")
+                        await asyncio.sleep(2)
                 
                 # اگر به ۵ رسیده، صبر کن
                 if active_searches >= max_active_searches:
